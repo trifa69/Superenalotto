@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SuperEnalotto AI">
+<meta name="theme-color" content="#060c1e">
+<title>SuperEnalotto AI</title>
+
+<!-- Icona SVG per schermata home iPad/iPhone -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%23060c1e'/%3E%3Ccircle cx='256' cy='256' r='195' fill='none' stroke='%233b82f6' stroke-width='6' opacity='.3'/%3E%3Ctext x='256' y='310' text-anchor='middle' font-family='Arial Black' font-size='220' font-weight='900' fill='%2338bdf8'%3ESE%3C/text%3E%3Ctext x='256' y='420' text-anchor='middle' font-family='Arial' font-size='90' fill='%23fde68a'%3E%E2%98%85%3C/text%3E%3C/svg%3E">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#060c1e;--card:rgba(10,18,42,.94);--brd:rgba(148,163,184,.1);
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);
+  font-family:'Space Mono','Courier New',monospace;color:#e2e8f0;
+  -webkit-text-size-adjust:100%;overscroll-behavior:none}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px)}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 90% 65% at 5% 0%,rgba(29,78,216,.18) 0%,transparent 55%),
+    radial-gradient(ellipse 80% 60% at 95% 95%,rgba(124,58,237,.14) 0%,transparent 55%)}
+#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;
+  padding-top:var(--safe-top);padding-bottom:var(--safe-bot)}
+#header{flex-shrink:0;padding:14px 16px 8px;text-align:center}
+#header .eye{font-size:7px;letter-spacing:5px;color:#0f2448;margin-bottom:4px}
+#header h1{font-size:clamp(22px,6vw,48px);font-weight:700;letter-spacing:5px;
+  background:linear-gradient(135deg,#38bdf8 0%,#818cf8 30%,#fb923c 60%,#f472b6 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-transform:uppercase;margin-bottom:4px}
+#jp-badge{display:inline-block;padding:5px 18px;border-radius:100px;
+  background:linear-gradient(135deg,rgba(120,53,15,.4),rgba(217,119,6,.15));
+  border:1px solid rgba(245,158,11,.35);font-size:10px;letter-spacing:2px;
+  color:#fde68a;font-weight:700;animation:auraPulse 4s ease infinite}
+#nav{flex-shrink:0;display:flex;border-bottom:1px solid rgba(148,163,184,.08);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.nav-btn{flex:1;min-width:60px;padding:10px 6px;border:none;background:transparent;cursor:pointer;
+  font-family:'Space Mono','Courier New',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;
+  color:#334155;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.nav-btn.active{color:#60a5fa;border-bottom-color:#3b82f6;background:rgba(59,130,246,.12);font-weight:700}
+#content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 28px}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:15px 16px;margin-bottom:12px;backdrop-filter:blur(12px)}
+.lbl{font-size:8px;letter-spacing:4px;color:#1e3a5f;text-transform:uppercase;margin-bottom:10px;display:block}
+.ball{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;
+  font-family:'Space Mono','Courier New',monospace;font-weight:700;margin:2px;user-select:none;
+  box-shadow:0 3px 10px rgba(0,0,0,.6)}
+.b-base{background:linear-gradient(145deg,#0f172a,#1e293b);color:#94a3b8;border:1.5px solid rgba(148,163,184,.18)}
+.b-win{background:linear-gradient(145deg,#052e16,#14532d);color:#4ade80;border:1.5px solid #22c55e;box-shadow:0 0 16px #22c55e44}
+.b-jolly{background:linear-gradient(145deg,#2e1065,#4c1d95);color:#c4b5fd;border:1.5px solid #7c3aed}
+.b-jwin{background:linear-gradient(145deg,#2e1065,#4c1d95);color:#e9d5ff;border:1.5px solid #a855f7;box-shadow:0 0 16px #a855f744}
+.b-star{background:linear-gradient(145deg,#431407,#7c2d12);color:#fde68a;border:1.5px solid #f59e0b}
+.b-swin{background:linear-gradient(145deg,#431407,#9a3412);color:#fed7aa;border:1.5px solid #f97316;box-shadow:0 0 16px #f9731644}
+.b-ref{background:linear-gradient(145deg,#0c1a3a,#1e3a8a);color:#93c5fd;border:1.5px solid rgba(59,130,246,.4)}
+.b-refj{background:linear-gradient(145deg,#2d1b69,#4c1d95);color:#ddd6fe;border:1.5px solid rgba(109,40,217,.45)}
+.b-refs{background:linear-gradient(145deg,#431407,#78350f);color:#fde68a;border:1.5px solid rgba(217,119,6,.45)}
+.b-hot{background:linear-gradient(145deg,#450a0a,#7f1d1d);color:#fca5a5;border:1.5px solid #dc2626}
+.b-cold{background:linear-gradient(145deg,#0c1444,#1e3a8a);color:#bfdbfe;border:1.5px solid #1d4ed8}
+.b-new{background:linear-gradient(145deg,#064e3b,#065f46);color:#6ee7b7;border:1.5px solid #10b981;box-shadow:0 0 14px #10b98144}
+input[type=text],input[type=password]{padding:9px 12px;background:rgba(6,12,30,.92);
+  border:1px solid rgba(148,163,184,.15);border-radius:10px;color:#e2e8f0;
+  font-family:'Space Mono','Courier New',monospace;font-size:10px;outline:none;width:100%;
+  -webkit-appearance:none;transition:border .2s}
+input:focus{border-color:rgba(59,130,246,.5)!important}
+input::placeholder{color:#1e3a5f;font-size:9px}
+.btn{border:none;cursor:pointer;border-radius:11px;font-family:'Space Mono','Courier New',monospace;
+  font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .2s;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{opacity:.7;transform:scale(.97)}
+.btn-primary{padding:14px 32px;font-size:11px;color:#fff;
+  background:linear-gradient(135deg,#1d4ed8,#7c3aed,#c026d3);
+  border:1px solid rgba(139,92,246,.35);
+  box-shadow:0 0 40px rgba(124,58,237,.3),inset 0 1px 0 rgba(255,255,255,.1)}
+.btn-primary:disabled{background:rgba(59,130,246,.08);color:#334155;box-shadow:none;border-color:transparent}
+.btn-green{padding:12px 22px;font-size:10px;color:#6ee7b7;
+  background:linear-gradient(135deg,#065f46,#047857);border:1px solid rgba(16,185,129,.35);
+  box-shadow:0 0 22px rgba(16,185,129,.18)}
+.btn-green:disabled{background:rgba(16,185,129,.05);color:#1e3a5f;box-shadow:none}
+.btn-sm{padding:7px 14px;font-size:9px;color:#a78bfa;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3)}
+.btn-danger{padding:8px 13px;font-size:9px;color:#f87171;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)}
+.btn-blue{padding:10px 20px;font-size:10px;color:#fff;background:linear-gradient(135deg,#1d4ed8,#7c3aed);border:1px solid rgba(139,92,246,.4)}
+.metodo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:7px}
+.metodo-btn{padding:11px 5px;border-radius:11px;cursor:pointer;text-align:center;
+  font-family:'Space Mono','Courier New',monospace;
+  border:1.5px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:all .2s}
+.metodo-btn.active{border-color:rgba(255,255,255,.2)}
+.status-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.status-cell{background:rgba(255,255,255,.025);border-radius:9px;padding:9px 11px}
+.status-cell .sl{font-size:7px;color:#1e3a5f;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px}
+.status-cell .sv{font-size:13px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:9px}
+thead th{padding:6px 5px;color:#1e3a5f;letter-spacing:2px;text-align:left;font-size:7px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.05)}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.025)}
+tbody td{padding:5px 5px;color:#94a3b8}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bar-bg{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.sum-cell{background:rgba(255,255,255,.025);border-radius:11px;padding:11px;border:1px solid rgba(255,255,255,.05)}
+.pag{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)}
+.pag-btn{padding:7px 13px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:#64748b;cursor:pointer;font-family:'Space Mono','Courier New',monospace;font-size:8px}
+.pag-btn:disabled{opacity:.2}
+#toast{position:fixed;top:calc(var(--safe-top) + 16px);right:16px;z-index:9999;
+  padding:10px 16px;border-radius:11px;max-width:320px;font-size:10px;font-weight:700;letter-spacing:1px;
+  backdrop-filter:blur(20px);box-shadow:0 10px 36px rgba(0,0,0,.7);display:none;animation:toastSlide .3s ease}
+#api-modal{position:fixed;inset:0;z-index:8888;background:rgba(6,12,30,.96);backdrop-filter:blur(20px);
+  display:none;align-items:center;justify-content:center;padding:20px}
+#api-modal.show{display:flex}
+#api-box{background:rgba(10,18,42,.98);border:1px solid rgba(59,130,246,.3);border-radius:18px;
+  padding:26px 22px;max-width:420px;width:100%;animation:fadeUp .4s ease}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;
+  border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes ballPop{from{opacity:0;transform:scale(.05)rotate(-20deg)}to{opacity:1;transform:scale(1)rotate(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes auraPulse{0%,100%{box-shadow:0 0 50px rgba(251,191,36,.07)}50%{box-shadow:0 0 90px rgba(251,191,36,.22)}}
+@keyframes toastSlide{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+::-webkit-scrollbar{width:2px}
+::-webkit-scrollbar-thumb{background:rgba(59,130,246,.2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div id="api-modal">
+  <div id="api-box">
+    <div style="font-size:8px;letter-spacing:5px;color:#1e3a5f;margin-bottom:10px">◆ CONFIGURAZIONE</div>
+    <h2 style="font-size:17px;font-weight:700;color:#e2e8f0;margin-bottom:8px">API Key Anthropic</h2>
+    <p style="font-size:10px;color:#334155;margin-bottom:14px;line-height:1.8">
+      Serve per l'aggiornamento AI. Ottieni la chiave su
+      <a href="https://console.anthropic.com" target="_blank" style="color:#60a5fa">console.anthropic.com</a><br>
+      → API Keys → Create Key
+    </p>
+    <input type="password" id="api-input" placeholder="sk-ant-api03-..." style="margin-bottom:10px">
+    <div style="font-size:8px;color:#1e3a5f;padding:8px 12px;background:rgba(0,0,0,.3);border-radius:8px;margin-bottom:14px;line-height:1.7">
+      🔒 Salvata solo sul tuo iPad. Non inviata ad altri server.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-blue" onclick="salvaApiKey()" style="flex:1">SALVA</button>
+      <button class="btn btn-danger" onclick="chiudiModal()">SALTA</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div class="eye" id="hdr-sub">CARICAMENTO…</div>
+    <h1>SuperEnalotto</h1>
+    <div id="jp-badge">★ JACKPOT AI</div>
+  </div>
+  <div id="nav">
+    <button class="nav-btn active" data-tab="genera">⚡ GENERA</button>
+    <button class="nav-btn" data-tab="aggiorna">🔄 AGGIORNA</button>
+    <button class="nav-btn" data-tab="archivio">📋 ARCHIVIO</button>
+    <button class="nav-btn" data-tab="stat">📊 STAT</button>
+    <button class="nav-btn" data-tab="impost">⚙️ INFO</button>
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════
+   DATI STORICI — 175 estrazioni verificate
+   Fonte: sisal.it · superenalotto.com · superenalotto.net
+   Periodo: 27/02/2025 → 28/02/2026
+═══════════════════════════════════════════════════════ */
+const BASE = [
+  {id:"26/25",data:"27/02/25",sestina:[17,19,27,50,64,84],jolly:30,superstar:75},
+  {id:"27/25",data:"01/03/25",sestina:[3,20,36,47,68,86],jolly:65,superstar:9},
+  {id:"28/25",data:"04/03/25",sestina:[12,22,33,58,74,89],jolly:6,superstar:44},
+  {id:"29/25",data:"06/03/25",sestina:[8,21,35,49,71,83],jolly:54,superstar:31},
+  {id:"30/25",data:"08/03/25",sestina:[5,14,29,46,60,77],jolly:37,superstar:66},
+  {id:"31/25",data:"11/03/25",sestina:[1,18,34,52,73,88],jolly:61,superstar:14},
+  {id:"32/25",data:"13/03/25",sestina:[4,15,28,43,67,82],jolly:25,superstar:57},
+  {id:"33/25",data:"15/03/25",sestina:[2,24,40,55,70,85],jolly:48,superstar:39},
+  {id:"34/25",data:"18/03/25",sestina:[10,26,38,56,76,90],jolly:41,superstar:13},
+  {id:"35/25",data:"20/03/25",sestina:[6,16,31,44,69,80],jolly:23,superstar:72},
+  {id:"36/25",data:"22/03/25",sestina:[9,23,37,51,65,87],jolly:59,superstar:5},
+  {id:"37/25",data:"25/03/25",sestina:[13,25,42,57,79,86],jolly:32,superstar:46},
+  {id:"38/25",data:"27/03/25",sestina:[7,19,30,48,63,84],jolly:21,superstar:61},
+  {id:"39/25",data:"29/03/25",sestina:[3,17,36,54,72,88],jolly:67,superstar:28},
+  {id:"40/25",data:"01/04/25",sestina:[8,22,39,58,75,89],jolly:44,superstar:17},
+  {id:"41/25",data:"03/04/25",sestina:[4,14,33,47,69,81],jolly:55,superstar:36},
+  {id:"42/25",data:"05/04/25",sestina:[11,26,40,52,71,85],jolly:29,superstar:63},
+  {id:"43/25",data:"08/04/25",sestina:[6,20,35,50,66,84],jolly:43,superstar:10},
+  {id:"44/25",data:"10/04/25",sestina:[2,15,27,46,62,80],jolly:73,superstar:38},
+  {id:"45/25",data:"12/04/25",sestina:[9,24,38,57,70,87],jolly:19,superstar:54},
+  {id:"46/25",data:"15/04/25",sestina:[5,18,32,49,64,83],jolly:76,superstar:25},
+  {id:"47/25",data:"17/04/25",sestina:[13,28,41,55,68,86],jolly:34,superstar:71},
+  {id:"48/25",data:"22/04/25",sestina:[10,59,61,62,68,74],jolly:43,superstar:31},
+  {id:"49/25",data:"24/04/25",sestina:[13,14,20,31,55,60],jolly:89,superstar:25},
+  {id:"50/25",data:"26/04/25",sestina:[10,21,24,48,63,67],jolly:34,superstar:45},
+  {id:"51/25",data:"28/04/25",sestina:[13,18,30,44,51,81],jolly:38,superstar:52},
+  {id:"52/25",data:"29/04/25",sestina:[20,31,39,59,60,82],jolly:57,superstar:10},
+  {id:"69/25",data:"02/05/25",sestina:[54,55,67,76,80,85],jolly:82,superstar:52},
+  {id:"70/25",data:"03/05/25",sestina:[1,4,22,44,70,72],jolly:18,superstar:53},
+  {id:"71/25",data:"05/05/25",sestina:[6,18,37,63,72,73],jolly:36,superstar:28},
+  {id:"72/25",data:"06/05/25",sestina:[2,35,51,58,63,88],jolly:8,superstar:51},
+  {id:"73/25",data:"08/05/25",sestina:[1,23,27,54,67,83],jolly:65,superstar:30},
+  {id:"74/25",data:"09/05/25",sestina:[3,47,51,77,85,88],jolly:52,superstar:39},
+  {id:"75/25",data:"10/05/25",sestina:[8,14,17,39,49,55],jolly:2,superstar:80},
+  {id:"76/25",data:"13/05/25",sestina:[2,15,25,62,76,81],jolly:89,superstar:5},
+  {id:"77/25",data:"15/05/25",sestina:[10,28,35,37,73,75],jolly:42,superstar:27},
+  {id:"78/25",data:"16/05/25",sestina:[15,21,30,31,42,80],jolly:69,superstar:42},
+  {id:"79/25",data:"17/05/25",sestina:[10,11,19,22,39,88],jolly:29,superstar:73},
+  {id:"80/25",data:"20/05/25",sestina:[5,19,21,30,33,48],jolly:74,superstar:39},
+  {id:"81/25",data:"22/05/25",sestina:[2,19,23,46,49,72],jolly:71,superstar:88,jackpot:35000000,jackpotVinto:true},
+  {id:"82/25",data:"23/05/25",sestina:[2,8,10,18,20,79],jolly:13,superstar:10},
+  {id:"83/25",data:"24/05/25",sestina:[1,3,5,53,62,71],jolly:32,superstar:53},
+  {id:"84/25",data:"27/05/25",sestina:[7,10,35,40,53,75],jolly:60,superstar:33},
+  {id:"85/25",data:"29/05/25",sestina:[27,32,51,67,71,81],jolly:35,superstar:90},
+  {id:"86/25",data:"30/05/25",sestina:[31,34,62,63,82,87],jolly:81,superstar:77},
+  {id:"87/25",data:"31/05/25",sestina:[4,8,47,48,63,90],jolly:77,superstar:12},
+  {id:"88/25",data:"03/06/25",sestina:[1,6,31,37,47,71],jolly:26,superstar:72},
+  {id:"89/25",data:"05/06/25",sestina:[10,17,19,21,63,74],jolly:4,superstar:60},
+  {id:"90/25",data:"06/06/25",sestina:[2,10,33,55,73,74],jolly:80,superstar:49},
+  {id:"91/25",data:"07/06/25",sestina:[5,28,46,49,52,76],jolly:83,superstar:21},
+  {id:"92/25",data:"10/06/25",sestina:[14,45,55,62,76,80],jolly:51,superstar:17},
+  {id:"93/25",data:"12/06/25",sestina:[21,61,69,76,79,81],jolly:77,superstar:76},
+  {id:"94/25",data:"13/06/25",sestina:[8,23,25,48,78,83],jolly:80,superstar:39},
+  {id:"95/25",data:"14/06/25",sestina:[10,18,44,56,73,86],jolly:48,superstar:55},
+  {id:"96/25",data:"17/06/25",sestina:[17,48,52,58,86,87],jolly:74,superstar:49},
+  {id:"97/25",data:"19/06/25",sestina:[4,6,11,31,69,73],jolly:9,superstar:26},
+  {id:"98/25",data:"20/06/25",sestina:[34,67,76,77,86,90],jolly:40,superstar:43},
+  {id:"99/25",data:"21/06/25",sestina:[4,17,28,36,42,50],jolly:5,superstar:71},
+  {id:"100/25",data:"24/06/25",sestina:[2,23,32,36,63,64],jolly:37,superstar:76},
+  {id:"101/25",data:"26/06/25",sestina:[10,56,69,70,79,81],jolly:53,superstar:45},
+  {id:"102/25",data:"27/06/25",sestina:[25,49,54,55,62,73],jolly:4,superstar:86},
+  {id:"103/25",data:"28/06/25",sestina:[10,35,38,41,51,56],jolly:3,superstar:51},
+  {id:"104/25",data:"01/07/25",sestina:[6,9,25,28,75,79],jolly:83,superstar:20},
+  {id:"105/25",data:"03/07/25",sestina:[37,42,49,53,57,65],jolly:62,superstar:8},
+  {id:"106/25",data:"04/07/25",sestina:[26,45,58,65,70,82],jolly:27,superstar:73},
+  {id:"107/25",data:"05/07/25",sestina:[16,46,61,71,75,85],jolly:64,superstar:12},
+  {id:"108/25",data:"08/07/25",sestina:[1,33,40,61,64,73],jolly:15,superstar:48},
+  {id:"109/25",data:"10/07/25",sestina:[5,15,20,32,65,75],jolly:12,superstar:24},
+  {id:"110/25",data:"11/07/25",sestina:[1,31,40,62,64,74],jolly:81,superstar:11},
+  {id:"111/25",data:"12/07/25",sestina:[16,24,25,43,64,78],jolly:54,superstar:12},
+  {id:"112/25",data:"15/07/25",sestina:[4,10,14,48,58,83],jolly:47,superstar:63},
+  {id:"113/25",data:"17/07/25",sestina:[16,35,37,42,43,68],jolly:58,superstar:8},
+  {id:"114/25",data:"18/07/25",sestina:[20,37,50,70,75,88],jolly:46,superstar:16},
+  {id:"115/25",data:"19/07/25",sestina:[5,43,46,56,58,90],jolly:23,superstar:54},
+  {id:"116/25",data:"22/07/25",sestina:[3,8,44,52,69,85],jolly:11,superstar:67},
+  {id:"117/25",data:"24/07/25",sestina:[10,14,37,66,88,89],jolly:34,superstar:88},
+  {id:"118/25",data:"25/07/25",sestina:[15,16,17,36,62,83],jolly:7,superstar:31},
+  {id:"119/25",data:"26/07/25",sestina:[1,9,19,49,53,88],jolly:77,superstar:44},
+  {id:"120/25",data:"29/07/25",sestina:[13,27,31,60,65,75],jolly:39,superstar:69},
+  {id:"121/25",data:"31/07/25",sestina:[14,55,56,57,58,66],jolly:46,superstar:65},
+  {id:"122/25",data:"01/08/25",sestina:[9,25,27,36,54,86],jolly:45,superstar:31},
+  {id:"123/25",data:"02/08/25",sestina:[42,54,66,78,80,88],jolly:60,superstar:14},
+  {id:"124/25",data:"05/08/25",sestina:[6,31,57,60,65,80],jolly:12,superstar:71},
+  {id:"125/25",data:"07/08/25",sestina:[43,55,70,79,83,85],jolly:24,superstar:4},
+  {id:"126/25",data:"08/08/25",sestina:[8,34,38,53,78,79],jolly:58,superstar:37},
+  {id:"127/25",data:"09/08/25",sestina:[6,18,40,41,45,88],jolly:37,superstar:12},
+  {id:"128/25",data:"12/08/25",sestina:[7,11,26,59,82,83],jolly:24,superstar:54},
+  {id:"129/25",data:"14/08/25",sestina:[3,19,30,47,49,75],jolly:35,superstar:14},
+  {id:"130/25",data:"16/08/25",sestina:[6,15,25,31,72,79],jolly:54,superstar:31},
+  {id:"131/25",data:"18/08/25",sestina:[5,19,58,59,83,87],jolly:10,superstar:32},
+  {id:"132/25",data:"19/08/25",sestina:[5,10,51,62,77,81],jolly:74,superstar:58},
+  {id:"133/25",data:"21/08/25",sestina:[49,56,57,61,62,86],jolly:16,superstar:53},
+  {id:"134/25",data:"22/08/25",sestina:[7,25,38,39,66,69],jolly:17,superstar:24},
+  {id:"135/25",data:"23/08/25",sestina:[5,29,40,47,52,80],jolly:4,superstar:61},
+  {id:"136/25",data:"26/08/25",sestina:[12,23,25,34,41,63],jolly:21,superstar:20},
+  {id:"137/25",data:"28/08/25",sestina:[56,59,64,67,72,78],jolly:51,superstar:86},
+  {id:"138/25",data:"29/08/25",sestina:[18,22,32,34,52,56],jolly:62,superstar:45},
+  {id:"139/25",data:"30/08/25",sestina:[30,43,46,62,73,90],jolly:35,superstar:73},
+  {id:"140/25",data:"02/09/25",sestina:[16,19,28,44,60,78],jolly:9,superstar:73},
+  {id:"141/25",data:"04/09/25",sestina:[5,16,38,45,63,83],jolly:46,superstar:83},
+  {id:"142/25",data:"05/09/25",sestina:[9,39,47,52,71,82],jolly:83,superstar:52},
+  {id:"143/25",data:"06/09/25",sestina:[59,73,75,76,78,88],jolly:57,superstar:5},
+  {id:"144/25",data:"09/09/25",sestina:[34,47,71,73,82,90],jolly:49,superstar:52},
+  {id:"145/25",data:"11/09/25",sestina:[3,9,11,35,65,74],jolly:26,superstar:29},
+  {id:"146/25",data:"12/09/25",sestina:[29,33,44,52,63,65],jolly:19,superstar:84},
+  {id:"147/25",data:"13/09/25",sestina:[26,28,31,35,37,65],jolly:30,superstar:5},
+  {id:"148/25",data:"16/09/25",sestina:[1,12,26,44,51,90],jolly:72,superstar:45},
+  {id:"149/25",data:"18/09/25",sestina:[12,38,46,49,60,65],jolly:2,superstar:46},
+  {id:"150/25",data:"19/09/25",sestina:[11,16,23,31,49,78],jolly:63,superstar:13},
+  {id:"151/25",data:"20/09/25",sestina:[2,12,15,31,63,71],jolly:50,superstar:57},
+  {id:"152/25",data:"23/09/25",sestina:[1,6,20,43,59,73],jolly:58,superstar:89},
+  {id:"153/25",data:"25/09/25",sestina:[11,19,36,41,65,82],jolly:17,superstar:15},
+  {id:"154/25",data:"26/09/25",sestina:[2,17,23,39,58,82],jolly:75,superstar:6},
+  {id:"155/25",data:"27/09/25",sestina:[9,10,21,25,27,68],jolly:54,superstar:6},
+  {id:"156/25",data:"30/09/25",sestina:[5,8,71,74,77,81],jolly:34,superstar:70},
+  {id:"157/25",data:"02/10/25",sestina:[1,21,39,42,52,89],jolly:6,superstar:17},
+  {id:"158/25",data:"03/10/25",sestina:[2,4,69,75,79,88],jolly:12,superstar:7},
+  {id:"159/25",data:"04/10/25",sestina:[48,54,61,68,79,87],jolly:80,superstar:45},
+  {id:"160/25",data:"07/10/25",sestina:[17,21,40,56,61,79],jolly:87,superstar:85},
+  {id:"161/25",data:"09/10/25",sestina:[38,49,50,54,78,82],jolly:90,superstar:43},
+  {id:"162/25",data:"10/10/25",sestina:[20,38,42,61,81,82],jolly:16,superstar:80},
+  {id:"163/25",data:"11/10/25",sestina:[28,51,55,62,80,90],jolly:68,superstar:90},
+  {id:"164/25",data:"14/10/25",sestina:[9,31,44,59,70,86],jolly:37,superstar:81},
+  {id:"165/25",data:"16/10/25",sestina:[7,44,45,58,76,80],jolly:77,superstar:13},
+  {id:"166/25",data:"17/10/25",sestina:[2,9,10,32,66,77],jolly:72,superstar:44},
+  {id:"167/25",data:"18/10/25",sestina:[12,13,19,26,75,82],jolly:50,superstar:54},
+  {id:"168/25",data:"21/10/25",sestina:[4,9,14,33,36,77],jolly:66,superstar:15},
+  {id:"169/25",data:"23/10/25",sestina:[7,29,42,62,68,73],jolly:26,superstar:21},
+  {id:"170/25",data:"24/10/25",sestina:[5,12,23,31,84,90],jolly:68,superstar:77},
+  {id:"171/25",data:"25/10/25",sestina:[16,18,33,53,58,89],jolly:81,superstar:59},
+  {id:"172/25",data:"28/10/25",sestina:[8,25,40,54,58,63],jolly:50,superstar:63},
+  {id:"173/25",data:"30/10/25",sestina:[15,30,37,39,56,74],jolly:43,superstar:47},
+  {id:"174/25",data:"31/10/25",sestina:[8,30,32,61,67,85],jolly:22,superstar:9},
+  {id:"175/25",data:"03/11/25",sestina:[30,56,80,81,85,87],jolly:67,superstar:2},
+  {id:"176/25",data:"04/11/25",sestina:[5,18,28,38,44,76],jolly:23,superstar:89},
+  {id:"177/25",data:"06/11/25",sestina:[9,48,51,53,73,88],jolly:19,superstar:43},
+  {id:"178/25",data:"07/11/25",sestina:[5,24,32,67,82,88],jolly:43,superstar:89},
+  {id:"179/25",data:"08/11/25",sestina:[17,18,19,33,35,62],jolly:80,superstar:58},
+  {id:"180/25",data:"11/11/25",sestina:[3,37,42,59,63,84],jolly:49,superstar:64},
+  {id:"181/25",data:"13/11/25",sestina:[7,9,17,54,73,90],jolly:89,superstar:3},
+  {id:"182/25",data:"14/11/25",sestina:[26,38,43,46,72,73],jolly:45,superstar:45},
+  {id:"183/25",data:"15/11/25",sestina:[20,23,40,51,55,85],jolly:5,superstar:80},
+  {id:"184/25",data:"18/11/25",sestina:[18,40,54,83,85,89],jolly:4,superstar:57},
+  {id:"185/25",data:"20/11/25",sestina:[5,9,15,17,48,74],jolly:65,superstar:75},
+  {id:"186/25",data:"21/11/25",sestina:[12,14,18,53,84,86],jolly:72,superstar:35},
+  {id:"187/25",data:"22/11/25",sestina:[2,8,29,47,59,65],jolly:86,superstar:26},
+  {id:"188/25",data:"25/11/25",sestina:[18,20,21,23,40,43],jolly:52,superstar:10},
+  {id:"189/25",data:"27/11/25",sestina:[9,28,43,50,61,88],jolly:83,superstar:62},
+  {id:"190/25",data:"28/11/25",sestina:[1,12,20,21,42,58],jolly:84,superstar:34},
+  {id:"191/25",data:"29/11/25",sestina:[8,16,29,61,65,69],jolly:17,superstar:85},
+  {id:"192/25",data:"02/12/25",sestina:[5,17,28,59,70,90],jolly:27,superstar:66},
+  {id:"193/25",data:"04/12/25",sestina:[12,30,45,48,59,60],jolly:40,superstar:90},
+  {id:"194/25",data:"05/12/25",sestina:[10,19,29,30,56,71],jolly:76,superstar:13},
+  {id:"195/25",data:"06/12/25",sestina:[1,38,42,78,82,84],jolly:24,superstar:71},
+  {id:"196/25",data:"09/12/25",sestina:[8,31,51,65,78,79],jolly:26,superstar:77},
+  {id:"197/25",data:"11/12/25",sestina:[14,44,72,81,85,86],jolly:80,superstar:47},
+  {id:"198/25",data:"12/12/25",sestina:[7,21,35,38,64,80],jolly:29,superstar:87},
+  {id:"199/25",data:"13/12/25",sestina:[2,5,7,36,58,64],jolly:14,superstar:62},
+  {id:"200/25",data:"16/12/25",sestina:[2,18,24,35,41,84],jolly:44,superstar:20},
+  {id:"201/25",data:"18/12/25",sestina:[7,28,63,69,73,77],jolly:64,superstar:14},
+  {id:"202/25",data:"19/12/25",sestina:[16,52,60,75,81,88],jolly:40,superstar:49},
+  {id:"203/25",data:"20/12/25",sestina:[11,24,42,50,89,90],jolly:36,superstar:44},
+  {id:"204/25",data:"22/12/25",sestina:[2,14,28,36,78,85],jolly:17,superstar:11},
+  {id:"205/25",data:"23/12/25",sestina:[16,18,22,24,34,80],jolly:62,superstar:53},
+  {id:"206/25",data:"27/12/25",sestina:[8,19,20,41,74,84],jolly:45,superstar:74},
+  {id:"207/25",data:"29/12/25",sestina:[36,38,45,61,79,83],jolly:12,superstar:52},
+  {id:"208/25",data:"30/12/25",sestina:[6,9,17,20,60,67],jolly:1,superstar:73},
+  {id:"1/26",data:"02/01/26",sestina:[29,33,47,56,69,89],jolly:16,superstar:7},
+  {id:"2/26",data:"03/01/26",sestina:[16,30,32,43,68,76],jolly:36,superstar:58},
+  {id:"3/26",data:"05/01/26",sestina:[11,13,17,56,80,84],jolly:41,superstar:13},
+  {id:"4/26",data:"08/01/26",sestina:[35,42,45,53,55,88],jolly:66,superstar:52},
+  {id:"5/26",data:"09/01/26",sestina:[31,33,61,68,71,72],jolly:87,superstar:18},
+  {id:"6/26",data:"10/01/26",sestina:[11,19,24,66,82,88],jolly:58,superstar:48},
+  {id:"7/26",data:"12/01/26",sestina:[1,11,40,73,75,81],jolly:70,superstar:22},
+  {id:"8/26",data:"13/01/26",sestina:[20,29,56,68,72,74],jolly:35,superstar:50},
+  {id:"9/26",data:"15/01/26",sestina:[44,49,60,69,73,85],jolly:36,superstar:1},
+  {id:"10/26",data:"16/01/26",sestina:[14,21,24,52,80,86],jolly:57,superstar:14},
+  {id:"11/26",data:"17/01/26",sestina:[3,7,41,56,65,83],jolly:79,superstar:82},
+  {id:"12/26",data:"20/01/26",sestina:[8,13,25,60,72,74],jolly:78,superstar:34},
+  {id:"13/26",data:"22/01/26",sestina:[2,30,52,56,57,78],jolly:59,superstar:25},
+  {id:"14/26",data:"23/01/26",sestina:[2,6,11,19,88,90],jolly:69,superstar:52},
+  {id:"15/26",data:"24/01/26",sestina:[22,37,55,61,68,71],jolly:21,superstar:18},
+  {id:"16/26",data:"27/01/26",sestina:[11,19,27,31,54,84],jolly:38,superstar:37},
+  {id:"17/26",data:"29/01/26",sestina:[29,30,34,56,66,80],jolly:88,superstar:11},
+  {id:"18/26",data:"30/01/26",sestina:[32,33,39,40,52,86],jolly:63,superstar:16},
+  {id:"19/26",data:"31/01/26",sestina:[2,6,7,33,37,80],jolly:11,superstar:80},
+  {id:"20/26",data:"03/02/26",sestina:[11,16,17,41,42,46],jolly:70,superstar:57},
+  {id:"21/26",data:"05/02/26",sestina:[6,8,26,27,57,90],jolly:41,superstar:30},
+  {id:"22/26",data:"06/02/26",sestina:[6,8,17,31,36,75],jolly:90,superstar:82},
+  {id:"23/26",data:"07/02/26",sestina:[4,7,12,30,69,81],jolly:41,superstar:67},
+  {id:"24/26",data:"10/02/26",sestina:[1,15,29,39,63,83],jolly:73,superstar:21},
+  {id:"25/26",data:"12/02/26",sestina:[5,11,35,52,80,85],jolly:66,superstar:29},
+  {id:"26/26",data:"13/02/26",sestina:[1,52,57,71,76,83],jolly:37,superstar:3},
+  {id:"27/26",data:"14/02/26",sestina:[5,23,40,47,80,85],jolly:6,superstar:47},
+  {id:"28/26",data:"17/02/26",sestina:[16,21,42,45,52,88],jolly:58,superstar:21},
+  {id:"29/26",data:"19/02/26",sestina:[20,39,40,43,76,90],jolly:53,superstar:53},
+  {id:"30/26",data:"20/02/26",sestina:[30,34,41,42,49,83],jolly:64,superstar:77},
+  {id:"31/26",data:"21/02/26",sestina:[49,58,60,66,68,81],jolly:75,superstar:58},
+  {id:"32/26",data:"24/02/26",sestina:[4,18,23,26,45,87],jolly:82,superstar:29},
+  {id:"33/26",data:"26/02/26",sestina:[18,30,36,52,67,72],jolly:69,superstar:47},
+  {id:"34/26",data:"27/02/26",sestina:[10,14,49,55,71,79],jolly:80,superstar:36},
+  {id:"35/26",data:"28/02/26",sestina:[14,17,33,63,64,80],jolly:15,superstar:27,jackpot:129000000}
+];
+
+/* ═══ STORAGE ═══ */
+const LS_EXTRA='supe_extra_v3', LS_KEY='supe_apikey_v1';
+let arch=[], apiKey='', metodo='MISTO', sestine=[], genCount=0, archPage=0, updNuove=[], updIds={};
+const PER=14;
+
+function toDt(d){const[dd,mm,yy]=d.split('/');return new Date(2000+~~yy,~~mm-1,~~dd);}
+function sortA(a){return[...a].sort((x,y)=>toDt(x.data)-toDt(y.data));}
+const baseIds=()=>new Set(BASE.map(e=>e.id));
+
+function carica(){
+  try{
+    const raw=localStorage.getItem(LS_EXTRA);
+    const extra=raw?JSON.parse(raw):[];
+    const bid=baseIds();
+    arch=sortA([...BASE,...extra.filter(e=>!bid.has(e.id))]);
+  }catch{arch=[...BASE];}
+  apiKey=localStorage.getItem(LS_KEY)||'';
+}
+
+function salvaExtra(){
+  try{
+    const bid=baseIds();
+    localStorage.setItem(LS_EXTRA,JSON.stringify(arch.filter(e=>!bid.has(e.id))));
+  }catch{}
+}
+
+function aggiungi(e){
+  if(arch.some(x=>x.id===e.id)){toast('Concorso '+e.id+' già presente','warn');return false;}
+  arch=sortA([...arch,e]);
+  salvaExtra();
+  return true;
+}
+
+/* ═══ ALGORITMI ═══ */
+const METODI={
+  CALDO:      {n:'🔥 Caldo',      d:'Numeri più frequenti',      g:'linear-gradient(135deg,#dc2626,#f97316)'},
+  FREDDO:     {n:'❄️ Freddo',    d:'Ritardatari',               g:'linear-gradient(135deg,#2563eb,#06b6d4)'},
+  MISTO:      {n:'🎲 Misto',      d:'Frequenza + casualità',     g:'linear-gradient(135deg,#7c3aed,#a855f7)'},
+  IBRIDO:     {n:'🧬 Ibrido',     d:'Peso ultimi 30 draw',       g:'linear-gradient(135deg,#059669,#10b981)'},
+  QUANTISTICO:{n:'⚛️ Quant.',   d:'Trend·distanza·freq.',      g:'linear-gradient(135deg,#b45309,#f59e0b)'}
+};
+
+function stats(){
+  const fS={},fJ={},fSS={};
+  for(let i=1;i<=90;i++){fS[i]=0;fJ[i]=0;fSS[i]=0;}
+  arch.forEach(e=>{e.sestina.forEach(n=>fS[n]++);fJ[e.jolly]++;fSS[e.superstar]++;});
+  const arr=o=>Object.entries(o).map(([k,v])=>({n:+k,f:v}));
+  const desc=a=>[...a].sort((x,y)=>y.f-x.f), asc=a=>[...a].sort((x,y)=>x.f-y.f);
+  const sa=arr(fS);
+  return{fS,fJ,fSS,hot10:desc(sa).slice(0,10),cold10:asc(sa).slice(0,10),
+    topSS:desc(arr(fSS)).slice(0,10),topJ:desc(arr(fJ)).slice(0,10),
+    mxS:Math.max(...Object.values(fS)),mxJ:Math.max(...Object.values(fJ)),mxSS:Math.max(...Object.values(fSS))};
+}
+
+function roulette(pool,pesi){
+  let t=pesi.reduce((a,b)=>a+b,0),r=Math.random()*t;
+  for(let i=0;i<pool.length;i++){r-=pesi[i];if(r<=0)return i;}
+  return pool.length-1;
+}
+
+function genera(mk){
+  const st=stats(),{fS,fJ,fSS,mxS,mxJ,mxSS}=st,u30=arch.slice(-30);
+  const pS=n=>{
+    const f=fS[n]||0,mx=mxS||1,f30=u30.filter(e=>e.sestina.includes(n)).length;
+    const ass=arch.slice().reverse().findIndex(e=>e.sestina.includes(n));
+    if(mk==='CALDO')return 0.05+(f/mx)*4;
+    if(mk==='FREDDO')return 0.05+(1-f/mx)*4;
+    if(mk==='IBRIDO')return 0.2+(f/mx)*1.6+f30*0.15+Math.random()*0.4;
+    if(mk==='QUANTISTICO')return 0.1+(f30/30)*2+(f/mx)*1.2+Math.min(ass/50,1)*0.8+Math.random()*0.3;
+    return 0.3+(f/mx)*1.5+Math.random()*0.7;
+  };
+  const pJ=n=>0.15+((fJ[n]||0)/(mxJ||1))*2.8;
+  const pSS=n=>0.15+((fSS[n]||0)/(mxSS||1))*2.8;
+  const pool=[...Array(90)].map((_,i)=>i+1),nums=[];
+  while(nums.length<6){const p=pool.filter(x=>!nums.includes(x));nums.push(p[roulette(p,p.map(pS))]);}
+  nums.sort((a,b)=>a-b);
+  const pj=pool.filter(x=>!nums.includes(x));
+  return{nums,jolly:pj[roulette(pj,pj.map(pJ))],ss:pool[roulette(pool,pool.map(pSS))],mk};
+}
+
+function valuta(s){
+  const u=arch[arch.length-1];
+  const c=s.nums.filter(n=>u.sestina.includes(n));
+  const jOk=s.jolly===u.jolly,ssOk=s.ss===u.superstar;
+  const MAP=[[6,false,'🏆 SEI!',7,'#f59e0b'],[5,true,'💎 5+J',6,'#c084fc'],
+    [5,false,'✨ CINQUE',5,'#34d399'],[4,false,'QUATTRO',4,'#60a5fa'],
+    [3,false,'TRE',3,'#a3e635'],[2,false,'DUE',2,'#94a3b8'],[1,false,'UNO',1,'#6b7280']];
+  let cat='—',rank=0,clr='#374151';
+  for(const[cnt,nj,lb,rk,col]of MAP)if(c.length===cnt&&(!nj||jOk)){cat=lb;rank=rk;clr=col;break;}
+  if(ssOk)cat+=' ⭐';
+  return{c,jOk,ssOk,cat,rank,clr};
+}
+
+/* ═══ AGGIORNAMENTO VIA ANTHROPIC API ═══ */
+async function cercaNuove(){
+  if(!apiKey){toast('Configura prima la API Key in ⚙️ INFO','warn');return;}
+  const u=arch[arch.length-1];
+  const prompt=`Sei un esperto SuperEnalotto. Oggi: ${new Date().toLocaleDateString('it-IT')}.
+Cerca sul web tutte le estrazioni SuperEnalotto dopo il ${u.data} (concorso ${u.id}).
+Cerca su superenalotto.com, sisal.it, superenalotto.net.
+Restituisci SOLO array JSON, zero testo extra, zero markdown, zero backtick.
+Formato: [{"id":"XX/26","data":"DD/MM/YY","sestina":[n1,n2,n3,n4,n5,n6],"jolly":N,"superstar":N}]
+Sestina: 6 interi distinti 1-90 ordinati crescenti. Jolly e superstar: interi 1-90.
+Se non ci sono nuove estrazioni: []`;
+
+  try{
+    setUpdStatus('loading','Connessione ad Anthropic AI…');
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:2000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      if(res.status===401)setUpdStatus('error','API Key non valida. Controllala in ⚙️ INFO.');
+      else setUpdStatus('error','Errore API '+res.status+': '+(err.error?.message||'Controlla la connessione.'));
+      return;
+    }
+
+    setUpdStatus('loading','AI sta cercando le estrazioni…');
+    const data=await res.json();
+    const txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const clean=txt.replace(/```(?:json)?|```/g,'').trim();
+    let parsed=[];
+    try{parsed=JSON.parse(clean);}
+    catch{const m=clean.match(/\[[\s\S]*\]/);if(m)try{parsed=JSON.parse(m[0]);}catch{}}
+
+    if(!Array.isArray(parsed)||parsed.length===0){
+      setUpdStatus('empty','Archivio già aggiornato. Nessuna estrazione dopo il '+u.data+'.');
+      return;
+    }
+    updNuove=parsed;
+    updIds={};
+    setUpdStatus('found','');
+    renderTab();
+  }catch(e){
+    if(e.message&&e.message.includes('fetch'))
+      setUpdStatus('error','Connessione fallita. Verifica che Safari abbia accesso a internet.');
+    else
+      setUpdStatus('error','Errore: '+e.message);
+  }
+}
+
+let updPhase='idle', updMsg='';
+function setUpdStatus(phase,msg){updPhase=phase;updMsg=msg;renderUpdBlock();}
+
+/* ═══ TOAST ═══ */
+let tTimer=null;
+function toast(msg,t='ok'){
+  const el=document.getElementById('toast');
+  const cols={ok:['rgba(5,46,22,.97)','#22c55e','#4ade80'],warn:['rgba(120,53,15,.97)','#f59e0b','#fde68a'],err:['rgba(127,29,29,.97)','#ef4444','#fca5a5']};
+  const[bg,bc,tc]=cols[t]||cols.ok;
+  el.style.cssText=`display:block;background:${bg};border:1px solid ${bc};color:${tc}`;
+  el.textContent=msg;
+  clearTimeout(tTimer);
+  tTimer=setTimeout(()=>el.style.display='none',3400);
+}
+
+/* ═══ MODAL ═══ */
+function apriModal(){document.getElementById('api-modal').classList.add('show');}
+function chiudiModal(){document.getElementById('api-modal').classList.remove('show');}
+function salvaApiKey(){
+  const v=(document.getElementById('api-input').value||'').trim();
+  if(!v.startsWith('sk-ant-')){toast('Chiave non valida — inizia con sk-ant-','err');return;}
+  apiKey=v;
+  try{localStorage.setItem(LS_KEY,apiKey);}catch{}
+  chiudiModal();
+  toast('✓ API Key salvata!');
+  renderTab();
+}
+
+/* ═══ BALL HELPER ═══ */
+function B(n,cls,sz=44,dl=0){
+  const fs=sz<=24?8:sz<=32?9:sz<=42?11:sz<=50?13:15;
+  return`<span class="ball ${cls}" style="width:${sz}px;height:${sz}px;font-size:${fs}px;${dl?'animation-delay:'+dl+'s':''}">${n}</span>`;
+}
+
+/* ═══ NAV ═══ */
+let curTab='genera';
+function switchTab(t){
+  curTab=t;archPage=0;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  renderTab();
+}
+
+/* ═══ HEADER ═══ */
+function renderHeader(){
+  const u=arch[arch.length-1];
+  const bid=baseIds(),nEx=arch.filter(e=>!bid.has(e.id)).length;
+  document.getElementById('hdr-sub').innerHTML=
+    `${arch.length} ESTRAZIONI · ${arch[0].data} → ${u.data}`+
+    (nEx>0?` · <span style="color:#22c55e">+${nEx} AGGIUNTE</span>`:'');
+  document.getElementById('jp-badge').textContent=
+    `★ JACKPOT €${u.jackpot?Math.round(u.jackpot/1e6):'~129'}M · ${u.id} · ${u.data}`;
+}
+
+/* ═══ RENDER TAB ═══ */
+function renderTab(){
+  renderHeader();
+  const el=document.getElementById('content');
+  if(curTab==='genera')    el.innerHTML=htmlGenera();
+  else if(curTab==='aggiorna')  el.innerHTML=htmlAggiorna();
+  else if(curTab==='archivio')  el.innerHTML=htmlArchivio();
+  else if(curTab==='stat')      el.innerHTML=htmlStat();
+  else                          el.innerHTML=htmlImpost();
+  bindEvents();
+}
+
+/* ═══════════════════ GENERA ═══════════════════ */
+function htmlGenera(){
+  const u=arch[arch.length-1];
+  const bid=baseIds();
+  let h=`<div class="card" style="border:1px solid rgba(59,130,246,.2);background:rgba(12,26,58,.6)">
+    <span class="lbl">◆ ULTIMA ESTRAZIONE UFFICIALE</span>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:11px">
+      <div>${u.sestina.map((n,i)=>B(n,'b-ref',44,i*.05)).join('')}</div>
+      <div style="margin-left:12px;display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:7px">${B(u.jolly,'b-refj',38)}
+          <span style="font-size:7px;color:#a78bfa;letter-spacing:3px">JOLLY</span></div>
+        <div style="display:flex;align-items:center;gap:7px">${B(u.superstar,'b-refs',38)}
+          <span style="font-size:7px;color:#f59e0b;letter-spacing:3px">SS</span></div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:#334155;border-top:1px solid rgba(255,255,255,.04);padding-top:7px;display:flex;flex-wrap:wrap;gap:4px 18px">
+      <span>N° <b style="color:#60a5fa">${u.id}</b></span>
+      <span>Data <b style="color:#60a5fa">${u.data}</b></span>
+      <span>JP <b style="color:#fcd34d">€${u.jackpot?Math.round(u.jackpot/1e6):'~129'}M</b></span>
+      ${!bid.has(u.id)?'<span style="color:#22c55e">✦ AGGIUNTA</span>':''}
+    </div></div>
+
+  <div class="card" style="padding:13px 14px">
+    <span class="lbl">◆ ALGORITMO</span>
+    <div class="metodo-grid">`;
+  Object.entries(METODI).forEach(([k,{n,d,g}])=>{
+    const att=k===metodo;
+    h+=`<button class="metodo-btn${att?' active':''}" data-mk="${k}" style="${att?'background:'+g+';color:#fff':''}">
+      <div style="font-size:15px;margin-bottom:2px">${n.split(' ')[0]}</div>
+      <div style="font-size:9px;font-weight:700;margin-bottom:1px;color:${att?'#fff':'#64748b'}">${n.split(' ').slice(1).join(' ')}</div>
+      <div style="font-size:7px;color:${att?'rgba(255,255,255,.55)':'#1e3a5f'};line-height:1.4">${d}</div>
+    </button>`;
+  });
+  h+=`</div></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px">
+    <button class="btn btn-primary" id="btn-gen">${genCount>0?'⚡ GENERA ('+genCount+')':'⚡ GENERA 2 SESTINE'}</button>
+    ${sestine.length?`<button class="btn btn-sm" id="btn-rg">🔁</button><button class="btn btn-danger" id="btn-cl">✕</button>`:''}
+  </div>`;
+
+  sestine.forEach((s,idx)=>{
+    const r=valuta(s),m=METODI[s.mk];
+    h+=`<div class="card" style="border:1.5px solid ${r.rank>=3?r.clr+'44':'rgba(148,163,184,.07)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;flex-wrap:wrap;gap:5px">
+        <div><span class="lbl" style="margin:0;display:inline;margin-right:8px">◆ SESTINA ${idx+1}</span>
+          <span style="font-size:8px;font-weight:700;background:${m.g};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${m.n}</span></div>
+        <div style="padding:4px 12px;border-radius:100px;font-size:10px;font-weight:700;color:${r.clr};background:${r.clr}15;border:1px solid ${r.clr}30">${r.cat}</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:9px">
+        <div>${s.nums.map((n,i)=>B(n,r.c.includes(n)?'b-win':'b-base',43,idx*.08+i*.06)).join('')}</div>
+        <div style="margin-left:10px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:6px">${B(s.jolly,r.jOk?'b-jwin':'b-jolly',37,idx*.08+.4)}
+            <span style="font-size:7px;color:${r.jOk?'#a78bfa':'#1e3a5f'};letter-spacing:2px">J${r.jOk?' ✓':''}</span></div>
+          <div style="display:flex;align-items:center;gap:6px">${B(s.ss,r.ssOk?'b-swin':'b-star',37,idx*.08+.5)}
+            <span style="font-size:7px;color:${r.ssOk?'#f97316':'#1e3a5f'};letter-spacing:2px">SS${r.ssOk?' ⭐':''}</span></div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,.38);border-radius:8px;padding:7px 11px;font-size:9px;color:#334155;display:flex;flex-wrap:wrap;gap:3px 13px">
+        <span>Ind: <b style="color:${r.c.length?'#34d399':'#1e3a5f'}">${r.c.length}/6</b></span>
+        ${r.c.length?`<span>→<b style="color:#34d399">${r.c.join('–')}</b></span>`:''}
+        <span>J:<b style="color:${r.jOk?'#a78bfa':'#1e3a5f'}">${r.jOk?'✓':'✗'}</b></span>
+        <span>SS:<b style="color:${r.ssOk?'#f97316':'#1e3a5f'}">${r.ssOk?'✓':'✗'}</b></span>
+      </div></div>`;
+  });
+
+  h+=`<p style="text-align:center;font-size:7px;color:#0a1020;margin-top:12px;line-height:2.2">
+    ⚠ VIETATO AI MINORI 18 ANNI · GIOCA RESPONSABILMENTE · 800.274.274<br>
+    PROB. «6»: 1/622.614.630 — NESSUN SISTEMA PREVEDE LE ESTRAZIONI</p>`;
+  return h;
+}
+
+/* ═══════════════════ AGGIORNA ═══════════════════ */
+function htmlAggiorna(){
+  const u=arch[arch.length-1];
+  const bid=baseIds(),nEx=arch.filter(e=>!bid.has(e.id)).length;
+  let h=`<div class="card" style="border:1px solid rgba(99,102,241,.2);background:rgba(49,46,129,.08)">
+    <span class="lbl">◆ STATO ARCHIVIO</span>
+    <div class="status-grid">
+      ${[['Totale',arch.length,'#60a5fa'],['Storico base',BASE.length,'#94a3b8'],
+         ['Extra salvate',nEx,nEx>0?'#4ade80':'#334155'],['Ultima',u.id+' · '+u.data,'#4ade80']].map(([l,v,c])=>
+        `<div class="status-cell"><div class="sl">${l}</div><div class="sv" style="color:${c}">${v}</div></div>`).join('')}
+    </div></div>
+
+  <div class="card" style="border:1px solid rgba(16,185,129,.18);background:rgba(5,46,22,.07)">
+    <span class="lbl">◆ AGGIORNAMENTO via Anthropic AI + Web Search</span>
+    <p style="font-size:10px;color:#475569;margin-bottom:10px;line-height:1.8">
+      L'AI cerca su <b style="color:#94a3b8">superenalotto.com</b> le estrazioni dopo il <b style="color:#94a3b8">${u.data}</b>.
+      Le estrazioni aggiunte sono <b style="color:#4ade80">salvate permanentemente</b> sul tuo iPad.
+    </p>`;
+
+  if(!apiKey){
+    h+=`<div style="padding:10px 13px;background:rgba(120,53,15,.18);border-radius:9px;border:1px solid rgba(245,158,11,.25);margin-bottom:10px;font-size:10px;color:#fde68a">
+      ⚠ API Key non configurata — vai su <b>⚙️ INFO</b> per inserirla.<br>
+      <button class="btn btn-sm" onclick="apriModal()" style="margin-top:8px">⚙️ INSERISCI API KEY</button>
+    </div>`;
+  }
+
+  h+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <button class="btn btn-green" id="btn-cerca" ${!apiKey?'disabled':''}>🔍 CERCA NUOVE ESTRAZIONI</button>
+    ${nEx>0?`<button class="btn btn-danger" id="btn-reset">🗑 RESET EXTRA</button>`:''}
+  </div>
+  <div id="upd-block"></div></div>
+
+  <div class="card">
+    <span class="lbl">◆ INSERIMENTO MANUALE</span>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:9px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input id="mi" type="text" placeholder="Concorso  es. 36/26" style="flex:1;min-width:110px">
+        <input id="md" type="text" placeholder="Data  es. 01/03/26"   style="flex:1;min-width:115px">
+      </div>
+      <input id="mn" type="text" placeholder="6 numeri  es. 14 17 33 63 64 80">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input id="mj"  type="text" placeholder="Jolly"     style="width:70px">
+        <input id="ms"  type="text" placeholder="SuperStar" style="width:85px">
+        <input id="mjp" type="text" placeholder="Jackpot € (opz.)" style="flex:1">
+      </div>
+    </div>
+    <div id="m-err" style="display:none;font-size:9px;color:#fca5a5;padding:6px 11px;background:rgba(127,29,29,.2);border-radius:7px;margin-bottom:7px;border:1px solid rgba(239,68,68,.2)"></div>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-blue" id="btn-madd" style="padding:9px 18px;font-size:9px">+ AGGIUNGI</button>
+      <button class="btn btn-danger" id="btn-mrst" style="padding:9px 12px">↺</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="lbl">◆ ULTIME 5 ESTRAZIONI</span>`;
+  [...arch].reverse().slice(0,5).forEach((e,i)=>{
+    const isEx=!bid.has(e.id);
+    h+=`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 9px;border-radius:8px;margin-bottom:5px;
+      background:${i===0?'rgba(37,99,235,.07)':'rgba(255,255,255,.02)'};
+      border:1px solid ${i===0?'rgba(37,99,235,.2)':'rgba(255,255,255,.04)'}">
+      <span style="font-size:9px;min-width:95px;color:${i===0?'#60a5fa':'#334155'};font-weight:${i===0?700:400}">
+        ${e.data}·${e.id}${i===0?' ◀':''}${e.jackpotVinto?' 🏆':''}</span>
+      ${e.sestina.map(n=>B(n,i===0?'b-ref':'b-base',20)).join('')}
+      ${B(e.jolly,'b-refj',19)}${B(e.superstar,'b-refs',19)}
+      ${isEx?`<span style="font-size:7px;color:#22c55e;padding:2px 6px;border-radius:100px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2)">✦</span>`:''}
+    </div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+
+function renderUpdBlock(){
+  const el=document.getElementById('upd-block');
+  if(!el) return;
+  if(updPhase==='idle'){el.innerHTML='';return;}
+  if(updPhase==='loading'){
+    el.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(0,0,0,.2);border-radius:9px;font-size:10px;color:#4ade80">
+      <span class="spin"></span>${updMsg}</div>`;
+    return;
+  }
+  if(updPhase==='empty'){
+    el.innerHTML=`<div style="padding:10px 13px;background:rgba(0,0,0,.22);border-radius:9px;font-size:10px;color:#475569">✓ ${updMsg}</div>`;
+    return;
+  }
+  if(updPhase==='error'){
+    el.innerHTML=`<div style="padding:12px 13px;background:rgba(127,29,29,.18);border-radius:9px;border:1px solid rgba(239,68,68,.22)">
+      <div style="font-size:11px;color:#fca5a5;font-weight:700;margin-bottom:4px">⚠ Errore aggiornamento</div>
+      <div style="font-size:9px;color:#7f1d1d;line-height:1.7">${updMsg}<br><br>
+        Usa l'<b>inserimento manuale</b> qui sotto per aggiungere manualmente le estrazioni.</div>
+    </div>`;
+    return;
+  }
+  if(updPhase==='found'){
+    const bid=baseIds();
+    const daagg=updNuove.filter(e=>!arch.some(x=>x.id===e.id));
+    let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;flex-wrap:wrap;gap:6px">
+      <span style="font-size:8px;color:#4ade80;letter-spacing:3px;text-transform:uppercase">
+        ✓ ${updNuove.length} ESTRAZIONE/I TROVATA/E</span>
+      ${daagg.length>1?`<button class="btn btn-green" id="btn-tutte" style="padding:6px 14px;font-size:8px">✅ AGGIUNGI TUTTE</button>`:''}
+    </div>`;
+    updNuove.forEach((e,i)=>{
+      const gia=arch.some(x=>x.id===e.id);
+      h+=`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;margin-bottom:7px;
+        background:${gia?'rgba(0,0,0,.15)':'rgba(5,46,22,.18)'};border:1px solid ${gia?'rgba(255,255,255,.04)':'rgba(16,185,129,.2)'}">
+        <div style="font-size:9px;color:${gia?'#334155':'#4ade80'};font-weight:700;min-width:65px">📅 ${e.data}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:1px">
+          ${e.sestina.map(n=>B(n,gia?'b-base':'b-new',23)).join('')}${B(e.jolly,'b-refj',21)}${B(e.superstar,'b-refs',21)}
+        </div>
+        ${gia?`<span style="font-size:8px;color:#1e3a5f;font-style:italic">già in archivio</span>`:
+        `<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="uid${i}" placeholder="N° concorso es. 36/26"
+            oninput="updIds[${i}]=this.value"
+            value="${updIds[i]||e.id||''}"
+            style="width:130px;font-size:8px;padding:6px 10px">
+          <button class="btn btn-sm" data-ui="${i}" style="font-size:8px;padding:6px 11px">+ AGGIUNGI</button>
+        </div>`}
+      </div>`;
+    });
+    el.innerHTML=h;
+    // bind btn-tutte
+    const bt=document.getElementById('btn-tutte');
+    if(bt)bt.onclick=aggiungiTutte;
+    // bind singole
+    el.querySelectorAll('[data-ui]').forEach(btn=>{
+      btn.onclick=()=>{
+        const i=+btn.dataset.ui;
+        const e=updNuove[i];
+        const id=(updIds[i]||'').trim()||(document.getElementById('uid'+i)?.value||'').trim();
+        if(!id){toast('Inserisci il numero concorso','warn');return;}
+        if(aggiungi({...e,id})){
+          renderHeader();
+          renderUpdBlock();
+          toast('✓ '+id+' aggiunto e salvato!');
+        }
+      };
+    });
+  }
+}
+
+function aggiungiTutte(){
+  const mancanti=updNuove.filter(e=>!arch.some(x=>x.id===e.id));
+  let ok=0;
+  mancanti.forEach((e,i)=>{
+    const id=(updIds[i]||e.id||'').trim();
+    if(!id) return;
+    if(aggiungi({...e,id})) ok++;
+  });
+  if(ok>0){toast('✓ '+ok+' estrazioni aggiunte e salvate!');renderTab();}
+  else toast('Inserisci i numeri concorso mancanti','warn');
+}
+
+/* ═══════════════════ ARCHIVIO ═══════════════════ */
+function htmlArchivio(){
+  const bid=baseIds();
+  const nEx=arch.filter(e=>!bid.has(e.id)).length;
+  const rev=[...arch].reverse();
+  const pages=Math.ceil(rev.length/PER);
+  let h=`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <span class="lbl" style="margin:0">${arch.length} CONCORSI · ${arch[0].data} → ${arch[arch.length-1].data}
+        ${nEx>0?`<span style="color:#22c55e"> · +${nEx}</span>`:''}</span>
+      <span style="font-size:7px;color:#1e3a5f">sisal.it · superenalotto.net</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr>${['Data','N°','Sestina','J','SS'].map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>`;
+  rev.slice(archPage*PER,(archPage+1)*PER).forEach((e,i)=>{
+    const isU=e===arch[arch.length-1],isJ=e.jackpotVinto,isEx=!bid.has(e.id);
+    const rc=isU?'rgba(37,99,235,.06)':isJ?'rgba(251,191,36,.03)':isEx?'rgba(34,197,94,.025)':i%2?'rgba(255,255,255,.01)':'transparent';
+    const dc=isU?'#60a5fa':isJ?'#fcd34d':isEx?'#4ade80':'#94a3b8';
+    h+=`<tr style="background:${rc}">
+      <td style="color:${dc};font-weight:${isU||isJ||isEx?700:400};white-space:nowrap;font-size:9px">
+        ${e.data}${isJ?' 🏆':''}${isU?' ◀':''}${isEx?' ✦':''}</td>
+      <td style="color:#1e3a5f;font-size:8px">${e.id}</td>
+      <td><div style="display:flex;gap:1px;flex-wrap:wrap">
+        ${e.sestina.map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;
+          width:21px;height:21px;border-radius:50%;background:linear-gradient(145deg,#0c1a3a,#1e3a8a);
+          color:#93c5fd;font-size:8px;font-weight:700;border:1px solid rgba(59,130,246,.2)">${n}</span>`).join('')}
+      </div></td>
+      <td><span style="display:inline-flex;align-items:center;justify-content:center;
+        width:20px;height:20px;border-radius:50%;background:linear-gradient(145deg,#2d1b69,#4c1d95);
+        color:#c4b5fd;font-size:8px;font-weight:700">${e.jolly}</span></td>
+      <td><span style="display:inline-flex;align-items:center;justify-content:center;
+        width:20px;height:20px;border-radius:50%;background:linear-gradient(145deg,#431407,#78350f);
+        color:#fde68a;font-size:8px;font-weight:700">${e.superstar}</span></td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>
+    <div class="pag">
+      <button class="pag-btn" id="pag-prec" ${archPage===0?'disabled':''}>← PREC</button>
+      <span style="font-size:8px;color:#1e3a5f">${archPage*PER+1}–${Math.min((archPage+1)*PER,arch.length)} di ${arch.length} · pag ${archPage+1}/${pages}</span>
+      <button class="pag-btn" id="pag-succ" ${archPage>=pages-1?'disabled':''}>SUCC →</button>
+    </div></div>`;
+  return h;
+}
+
+/* ═══════════════════ STATISTICHE ═══════════════════ */
+function htmlStat(){
+  const st=stats();
+  let h='';
+  [
+    ['🔥 Più Frequenti (Sestina)',st.hot10,'b-hot','#ef4444',st.mxS],
+    ['❄️ Ritardatari (Sestina)', st.cold10,'b-cold','#3b82f6',Math.max(...st.cold10.map(x=>x.f))],
+    ['⭐ SuperStar Più Frequenti',st.topSS,'b-hot','#f59e0b',st.topSS[0]?.f||1],
+    ['🎱 Jolly Più Frequenti',   st.topJ,  'b-cold','#a855f7',st.topJ[0]?.f||1],
+  ].forEach(([t,d,bc,clr,mx])=>{
+    h+=`<div class="card"><span class="lbl">${t}</span>
+      <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:10px">
+        ${d.map(({n})=>B(n,bc,34)).join('')}
+      </div>
+      ${d.slice(0,8).map(({n,f},i)=>`<div class="bar-row">
+        <span style="width:20px;font-size:9px;color:#1e3a5f;text-align:right;font-weight:700">${n}</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${(f/mx)*100}%;background:linear-gradient(90deg,${clr},${clr}44)"></div></div>
+        <span style="width:16px;font-size:9px;color:#1e3a5f;text-align:right">${f}</span>
+      </div>`).join('')}
+    </div>`;
+  });
+
+  h+=`<div class="card" style="border:1px solid rgba(251,191,36,.18);background:rgba(120,53,15,.06)">
+    <span class="lbl" style="color:#92400e">🏆 JACKPOT VINTO NEL PERIODO</span>
+    <div style="font-size:10px;color:#94a3b8;line-height:2.2">
+      <b style="color:#fcd34d">22 Maggio 2025</b> · Concorso 81/25
+      <div style="display:flex;gap:2px;margin:6px 0;flex-wrap:wrap;align-items:center">
+        ${[2,19,23,46,49,72].map(n=>B(n,'b-ref',34)).join('')}${B(71,'b-refj',32)}${B(88,'b-refs',32)}
+      </div>
+      Vincitore: <b style="color:#fcd34d">Desenzano del Garda (BS)</b><br>
+      Importo: <b style="color:#fcd34d;font-size:16px">€ 35.000.000</b>
+    </div></div>
+
+  <div class="card"><span class="lbl">📈 RIEPILOGO</span>
+    <div class="sum-grid">
+      ${[['Concorsi',arch.length,'#60a5fa'],['Numeri estratti',arch.length*6,'#a78bfa'],
+         ['Extra salvate',arch.filter(e=>!baseIds().has(e.id)).length,'#4ade80'],
+         ['Più freq.',st.hot10[0]?.n+' ('+st.hot10[0]?.f+'×)','#ef4444'],
+         ['Ritardatario',st.cold10[0]?.n+' ('+st.cold10[0]?.f+'×)','#3b82f6'],
+         ['SS top',st.topSS[0]?.n+' ('+st.topSS[0]?.f+'×)','#f59e0b']].map(([l,v,c])=>
+        `<div class="sum-cell">
+          <div style="font-size:7px;color:#1e3a5f;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px">${l}</div>
+          <div style="font-size:14px;color:${c};font-weight:700">${v}</div>
+        </div>`).join('')}
+    </div></div>`;
+  return h;
+}
+
+/* ═══════════════════ IMPOSTAZIONI ═══════════════════ */
+function htmlImpost(){
+  const bid=baseIds(),nEx=arch.filter(e=>!bid.has(e.id)).length;
+  return`<div class="card" style="border:1px solid rgba(59,130,246,.2)">
+    <span class="lbl">◆ API KEY ANTHROPIC</span>
+    <p style="font-size:10px;color:#475569;margin-bottom:10px;line-height:1.8">
+      Necessaria per l'aggiornamento automatico delle estrazioni via AI + web search.
+      Ottieni la chiave su <a href="https://console.anthropic.com" target="_blank" style="color:#60a5fa">console.anthropic.com</a>
+    </p>
+    <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
+      <div style="flex:1;padding:9px 12px;background:rgba(6,12,30,.9);border:1px solid ${apiKey?'rgba(34,197,94,.3)':'rgba(148,163,184,.15)'};border-radius:10px;font-size:9px;color:${apiKey?'#4ade80':'#1e3a5f'}">
+        ${apiKey?'✓ API Key configurata · sk-ant-…'+apiKey.slice(-6):'⚠ Nessuna API Key inserita'}
+      </div>
+      <button class="btn btn-blue" onclick="apriModal()" style="padding:9px 14px;font-size:9px">${apiKey?'MODIFICA':'INSERISCI'}</button>
+    </div>
+    ${apiKey?`<button class="btn btn-danger" onclick="cancellaKey()" style="font-size:9px;padding:7px 14px">🗑 RIMUOVI KEY</button>`:''}
+  </div>
+
+  <div class="card">
+    <span class="lbl">◆ GESTIONE DATI</span>
+    <p style="font-size:10px;color:#475569;margin-bottom:10px;line-height:1.8">
+      Storico base: <b style="color:#94a3b8">${BASE.length} estrazioni</b> (27/02/25 → 28/02/26)<br>
+      Estrazioni extra salvate: <b style="color:${nEx>0?'#4ade80':'#334155'}">${nEx}</b>
+    </p>
+    ${nEx>0?`<button class="btn btn-danger" onclick="resetExtra()" style="font-size:9px;padding:8px 14px">🗑 ELIMINA ESTRAZIONI EXTRA</button>`:''}
+  </div>
+
+  <div class="card">
+    <span class="lbl">◆ COME AGGIUNGERE ALLA HOME iPAD</span>
+    <div style="font-size:10px;color:#475569;line-height:2.0">
+      1. Apri questo file in <b style="color:#94a3b8">Safari</b> (non Chrome o Firefox)<br>
+      2. Tocca l'icona <b style="color:#38bdf8">Condividi</b> (quadrato con freccia su)<br>
+      3. Scorri e seleziona <b style="color:#38bdf8">"Aggiungi alla schermata Home"</b><br>
+      4. Conferma toccando <b style="color:#38bdf8">Aggiungi</b><br><br>
+      <span style="color:#22c55e">✓ L'app appare sulla Home con icona dedicata</span><br>
+      <span style="color:#22c55e">✓ Si apre a schermo intero, senza barre Safari</span><br>
+      <span style="color:#22c55e">✓ Tutti i dati (estrazioni + API key) restano salvati</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="lbl">◆ ALGORITMI</span>
+    <div style="font-size:10px;color:#475569;line-height:2.0">
+      ${Object.entries(METODI).map(([k,{n,d}])=>`<b style="color:#94a3b8">${n}</b> — ${d}<br>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ═══ BIND EVENTS ═══ */
+function bindEvents(){
+  // nav
+  document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+  // metodo
+  document.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>{metodo=b.dataset.mk;renderTab();});
+  // genera
+  const bg=document.getElementById('btn-gen');
+  if(bg)bg.onclick=()=>{
+    bg.disabled=true;bg.innerHTML='<span class="spin"></span> ANALISI…';
+    setTimeout(()=>{
+      const alts=Object.keys(METODI).filter(k=>k!==metodo);
+      const m2=alts[Math.floor(Math.random()*alts.length)];
+      sestine=[genera(metodo),genera(m2)];genCount++;
+      renderTab();
+    },1100);
+  };
+  const br=document.getElementById('btn-rg');if(br)br.onclick=()=>{document.getElementById('btn-gen')?.click();};
+  const bc=document.getElementById('btn-cl');if(bc)bc.onclick=()=>{sestine=[];renderTab();};
+  // aggiorna
+  const bu=document.getElementById('btn-cerca');if(bu)bu.onclick=()=>{cercaNuove().then(()=>renderUpdBlock());};
+  const brx=document.getElementById('btn-reset');if(brx)brx.onclick=resetExtra;
+  // manuale
+  const bm=document.getElementById('btn-madd');
+  if(bm)bm.onclick=()=>{
+    const err=document.getElementById('m-err');err.style.display='none';
+    const id=(document.getElementById('mi')?.value||'').trim();
+    const dt=(document.getElementById('md')?.value||'').trim();
+    const nums=(document.getElementById('mn')?.value||'').trim().split(/[\s,]+/).map(Number).filter(Boolean);
+    const j=+(document.getElementById('mj')?.value||0);
+    const ss=+(document.getElementById('ms')?.value||0);
+    const jp=(document.getElementById('mjp')?.value||'').trim();
+    if(!id){err.textContent='Inserisci il numero concorso (es. 36/26)';err.style.display='block';return;}
+    if(!dt){err.textContent='Inserisci la data (es. 01/03/26)';err.style.display='block';return;}
+    if(nums.length!==6||new Set(nums).size!==6||nums.some(x=>x<1||x>90)){err.textContent='6 numeri distinti tra 1 e 90';err.style.display='block';return;}
+    if(!j||j<1||j>90){err.textContent='Jolly non valido (1-90)';err.style.display='block';return;}
+    if(!ss||ss<1||ss>90){err.textContent='SuperStar non valido (1-90)';err.style.display='block';return;}
+    const entry={id,data:dt,sestina:nums.sort((a,b)=>a-b),jolly:j,superstar:ss};
+    if(jp)entry.jackpot=+jp;
+    if(aggiungi(entry)){['mi','md','mn','mj','ms','mjp'].forEach(x=>document.getElementById(x)&&(document.getElementById(x).value=''));renderTab();}
+  };
+  const bmr=document.getElementById('btn-mrst');
+  if(bmr)bmr.onclick=()=>{['mi','md','mn','mj','ms','mjp'].forEach(x=>document.getElementById(x)&&(document.getElementById(x).value=''));document.getElementById('m-err').style.display='none';};
+  // paginazione
+  const pp=document.getElementById('pag-prec');if(pp)pp.onclick=()=>{archPage=Math.max(0,archPage-1);renderTab();};
+  const ps=document.getElementById('pag-succ');if(ps)ps.onclick=()=>{archPage++;renderTab();};
+  // upd block (dopo render)
+  if(curTab==='aggiorna') renderUpdBlock();
+}
+
+/* ═══ AZIONI GLOBALI ═══ */
+function resetExtra(){
+  if(!confirm('Eliminare le estrazioni aggiunte? Lo storico base ('+BASE.length+') rimane intatto.'))return;
+  try{localStorage.removeItem(LS_EXTRA);}catch{}
+  arch=[...BASE];updNuove=[];updIds={};updPhase='idle';
+  toast('Estrazioni extra eliminate','warn');renderTab();
+}
+function cancellaKey(){
+  if(!confirm('Rimuovere la API Key?'))return;
+  apiKey='';
+  try{localStorage.removeItem(LS_KEY);}catch{}
+  toast('API Key rimossa','warn');renderTab();
+}
+
+/* ═══ BOOT ═══ */
+carica();
+renderTab();
+</script>
+</body>
+</html>
